@@ -1,0 +1,6 @@
+{
+	"command":"exit 1",
+	"pass" : {
+		"zeroExit": false
+	}
+}

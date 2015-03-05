@@ -1,0 +1,56 @@
+{
+	"name":"simple",
+	"noconcurrent": false,
+	"before": [],
+	"requiredFiles" : [
+		"input", 
+		"input.expected",
+		"output.expected",
+		"error.expected"
+	],
+	"createRequired":true,
+	"command":"xargs echo",
+	"stdin":["input"],
+	"stdout":"output",
+	"stderr":"error",
+	"limitOutput": 100000,
+	"pass" : {
+		"match": [
+			["input.expected", "input"],
+			["error.expected", "error"]
+		],
+		"rmatch": [
+			["output.expected", "output"]
+		],
+		"zeroExit": true,
+		"limitReached": false
+	},
+	"after":[],
+	"next": {
+		"name":"simple-next",
+		"noconcurrent": false,
+		"before": [
+		],
+		"requiredFiles" : [
+			"output", 
+			"output.expected",
+			"error.expected"
+		],
+		"createRequired":false,
+		"command":"xargs echo",
+		"stdin":["output"],
+		"stdout":"output.next",
+		"stderr":"error.next",
+		"limitOutput": 100000,
+		"pass" : {
+			"match": [
+				["output", "output.next"],
+				["error.expected", "error.next"]
+			],
+			"zeroExit": true,
+			"limitReached": false
+		},
+		"after":[],
+		"next": null
+	}
+}
