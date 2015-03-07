@@ -1,14 +1,14 @@
-all:	tester
+all:	yoke
 
-tester:	FORCE
+yoke:	FORCE
 	cd src; make
 	cp src/$@ .
 
-run:	tester
+run:	yoke
 	./$< -verbose
 
 clean:	FORCE
 	cd src; make clean
-	rm -f tester
+	rm -f yoke
 
 FORCE:

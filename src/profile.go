@@ -38,7 +38,7 @@ type passConditions struct {
 func newProfile(testdir string, r *testResults, defaultProfile *testProfile) (p *testProfile) {
 	p = new(testProfile)
 
-	profileBytes, err := ioutil.ReadFile(testdir + "/tester_profile.json")
+	profileBytes, err := ioutil.ReadFile(testdir + "/" + PROFILE_FILE_NAME)
 	if err != nil {
 		r.info("No config file found. Using default config")
 	} else {

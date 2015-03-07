@@ -17,8 +17,8 @@ import (
 )
 
 const (
-	DEFAULT_CONFIG_FILE    = "tester_config.json"
-	PROFILE_FILE_NAME      = "tester_profile.json"
+	DEFAULT_CONFIG_FILE    = "yoke_config.json"
+	PROFILE_FILE_NAME      = "yoke_profile.json"
 	MATCH_READ_BUFFER_SIZE = 1024
 )
 

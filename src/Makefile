@@ -3,11 +3,11 @@
 GC=gccgo
 GCFLAGS=-g
 
-tester:	tester.go results.go profile.go
+yoke:	yoke.go results.go profile.go
 	$(GC) $(GCFLAGS) -o $@ $^
 
-run:	tester.go
+run:	yoke.go
 	go run $<
 
 clean:	
-	rm -f tester
+	rm -f yoke
