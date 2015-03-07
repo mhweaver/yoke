@@ -1,6 +1,8 @@
 {
+	"name": "inherit",
 	"command":"exit 1",
 	"pass" : {
-		"zeroExit": false
+		"zeroExit": false,
+		"rmatch": null
 	}
 }

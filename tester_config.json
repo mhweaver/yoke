@@ -17,7 +17,7 @@
 		"stdout":"output",
 		"stderr":"error",
 		"limitOutput": 20,
-		"maxTimePerCommand": 30,
+		"maxTimePerCommand": 2,
 		"pass" : {
 			"match": [
 				["input.expected", "input"],
@@ -27,7 +27,8 @@
 				["output.expected", "output"]
 			],
 			"zeroExit": true,
-			"limitReached": false
+			"limitReached": false,
+			"maxTimePerCommandReached": false
 		},
 		"after":[],
 		"next": null

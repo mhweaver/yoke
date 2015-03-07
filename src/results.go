@@ -15,7 +15,7 @@ type testResults struct {
 	testName          *string
 	passed            bool
 	limitReached      bool
-	exceededTimeLimit []*exec.Cmd
+	exceededTimeLimit []string
 	errorList         *list.List
 	infoList          *list.List
 	warningList       *list.List
@@ -30,7 +30,7 @@ func newResults() (r *testResults) {
 	r.warningList = list.New()
 	r.passed = true
 	r.limitReached = false
-	r.exceededTimeLimit = make([]*exec.Cmd, 0)
+	r.exceededTimeLimit = make([]string, 0)
 	return
 }
 

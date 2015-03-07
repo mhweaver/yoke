@@ -29,7 +29,7 @@ type test struct {
 	stdin    io.Reader
 	stdout   io.Writer
 	stderr   io.Writer
-	config   *testProfile
+	profile  *testProfile
 }
 
 var config struct {
@@ -68,7 +68,7 @@ func main() {
 	for e := tests.Front(); e != nil; e = e.Next() {
 		var currTest *test
 		currTest = e.Value.(*test)
-		if !currTest.config.Noconcurrent {
+		if currTest.profile.Noconcurrent != nil && !*currTest.profile.Noconcurrent {
 			c <- true // If there are > maxthreads running, wait for one to finish
 			go currTest.runInThread(c, done)
 			numConcurrent++
@@ -78,12 +78,11 @@ func main() {
 	for i := 0; i < numConcurrent; i++ {
 		<-done
 	}
-
 	// Run non-concurrent tests
 	for e := tests.Front(); e != nil; e = e.Next() {
 		var currTest *test
 		currTest = e.Value.(*test)
-		if currTest.config.Noconcurrent {
+		if currTest.profile.Noconcurrent != nil && *currTest.profile.Noconcurrent {
 			currTest.run()
 		}
 	}
@@ -92,6 +91,7 @@ func main() {
 		var currTest *test
 		currTest = e.Value.(*test)
 		currTest.results.print()
+		// fmt.Println(currTest.profile.String())
 	}
 
 }
@@ -123,6 +123,8 @@ func init() {
 		log.Fatal("Unable to unmarshal default config JSON: ", err)
 	}
 
+	config.DefaultProfile.fixNullReferences()
+
 	if config.Maxthreads <= 0 {
 		config.Maxthreads = runtime.NumCPU()
 	}
@@ -135,81 +137,12 @@ func newTest(name string) (t *test) {
 	t.testName = name
 	t.results = newResults()
 	t.results.testName = &t.testName
-	configFile, err := ioutil.ReadFile(name + "/tester_profile.json")
-	if err != nil {
-		t.results.info(name + ": No config file found. Using default config")
-		t.config = &config.DefaultProfile
-	} else {
-		err := json.Unmarshal(configFile, &t.config)
-		if err != nil {
-			log.Println("Unable to unmarshal config JSON: ", err)
-		}
-		t.config.setUnsetFieldsToDefault()
-	}
 
-	t.results.info("Test loaded: " + name + " (config: " + t.config.ConfigName + ")")
+	t.profile = newProfile(name, t.results, &config.DefaultProfile)
+
+	t.results.info("Test loaded: " + name + " (config: " + *t.profile.Name + ")")
 
 	return t
-}
-
-func (c *testProfile) setUnsetFieldsToDefault() {
-	if c.After == nil { // []string
-		c.After = config.DefaultProfile.After
-	}
-	if c.Before == nil { // []string
-		c.Before = config.DefaultProfile.Before
-	}
-	if len(c.Command) == 0 { // string
-		c.Command = config.DefaultProfile.Command
-	}
-	// if c.Noconcurrent == nil { // bool
-	// 	c.Noconcurrent = config.DefaultProfile.Noconcurrent
-	// }
-	if len(c.ConfigName) == 0 { // string
-		c.ConfigName = config.DefaultProfile.ConfigName
-	}
-	if c.Next == nil { // *testProfile
-		c.Next = config.DefaultProfile.Next
-	}
-
-	// Pass (struct)
-	if c.Pass == nil {
-		c.Pass = config.DefaultProfile.Pass
-	}
-	// if c.Pass.ZeroExit == nil { // bool
-	// 	c.Pass.ZeroExit = config.DefaultProfile.Pass.ZeroExit
-	// }
-	// if c.Pass.Match == nil { // [][]string
-	// 	c.Pass.Match = config.DefaultProfile.Pass.Match
-	// }
-	// if c.Pass.Rmatch == nil { // [][]string
-	// 	c.Pass.Rmatch = config.DefaultProfile.Pass.Rmatch
-	// }
-	// if c.Pass.LimitReached == nil { // bool
-	// 	c.Pass.LimitReached = config.DefaultProfile.Pass.LimitReached
-	// }
-
-	if c.RequiredFiles == nil { // []string
-		c.RequiredFiles = config.DefaultProfile.RequiredFiles
-	}
-	// if c.CreateRequired == nil { // bool
-	// 	c.CreateRequired = config.DefaultProfile.CreateRequired
-	// }
-	if len(c.Stderr) == 0 { // string
-		c.Stderr = config.DefaultProfile.Stderr
-	}
-	if c.Stdin == nil { // []string
-		c.Stdin = config.DefaultProfile.Stdin
-	}
-	if len(c.Stdout) == 0 { // string
-		c.Stdout = config.DefaultProfile.Stdout
-	}
-	if c.LimitOutput == 0 { // int64
-		c.LimitOutput = config.DefaultProfile.LimitOutput
-	}
-	if c.MaxTimePerCommand == 0 {
-		c.MaxTimePerCommand = config.DefaultProfile.MaxTimePerCommand
-	}
 }
 
 func (t *test) run() {
@@ -220,11 +153,10 @@ func (t *test) run() {
 	t.parseResults()
 	t.runAfterCommands()
 
-	if t.config.Next != nil {
-		t.config = t.config.Next
+	if t.profile.Next != nil {
+		t.profile = t.profile.Next
 		t.run()
 	}
-
 }
 
 func (t *test) runInThread(c chan bool, done chan bool) {
@@ -234,24 +166,20 @@ func (t *test) runInThread(c chan bool, done chan bool) {
 }
 
 func (t *test) checkRequiredFiles() {
-	if len(t.config.RequiredFiles) == 0 {
+	if t.profile.RequiredFiles == nil {
 		return
 	}
-	for _, v := range t.config.RequiredFiles {
-		file, err := os.Open(t.testName + "/" + v)
-		defer file.Close()
-		if err != nil {
-			if t.config.CreateRequired {
-				t.results.info("Unable to open required file: " + v + ": " + err.Error())
-				t.results.info("Creating " + t.testName + "/" + v)
-				f, err := os.Create(t.testName + "/" + v)
-				defer f.Close()
-				if err != nil {
-					t.results.fail("Unable to create required file: " + v + ": " + err.Error())
-				} else {
-					t.results.info("Created file")
-				}
-			} else {
+	for _, v := range t.profile.RequiredFiles {
+		if *t.profile.CreateRequired {
+			file, err := os.OpenFile(t.testName+"/"+v, os.O_CREATE|os.O_RDWR, os.ModePerm)
+			defer file.Close()
+			if err != nil {
+				t.results.fail("Unable to open or create required file: " + v + ": " + err.Error())
+			}
+		} else {
+			file, err := os.Open(t.testName + "/" + v)
+			defer file.Close()
+			if err != nil {
 				t.results.fail("Unable to open required file: " + v + ": " + err.Error())
 			}
 		}
@@ -259,20 +187,20 @@ func (t *test) checkRequiredFiles() {
 }
 
 func (t *test) truncateOutputFiles() {
-	filename := t.testName + "/" + t.config.Stdout
+	filename := t.testName + "/" + *t.profile.Stdout
 	f, err := os.OpenFile(filename, os.O_TRUNC, os.ModePerm)
 	defer f.Close()
 	if err != nil {
-		t.results.info("Unable to open " + t.config.Stdout + " for truncation: " + err.Error())
+		t.results.info("Unable to open " + *t.profile.Stdout + " for truncation: " + err.Error())
 	} else {
 		f.Truncate(0)
 	}
 
-	filename = t.testName + "/" + t.config.Stderr
+	filename = t.testName + "/" + *t.profile.Stderr
 	f, err = os.OpenFile(filename, os.O_TRUNC, os.ModePerm)
 	defer f.Close()
 	if err != nil {
-		t.results.info("Unable to open " + t.config.Stderr + " for truncation: " + err.Error())
+		t.results.info("Unable to open " + *t.profile.Stderr + " for truncation: " + err.Error())
 	} else {
 		f.Truncate(0)
 	}
@@ -281,50 +209,71 @@ func (t *test) truncateOutputFiles() {
 func (t *test) getStdio() (stdin io.Reader, stdout io.Writer, stderr io.Writer, openFiles []*os.File) {
 	openFiles = make([]*os.File, 3)
 
-	// Set up stdin multireader
-	stdin = nil
-	for _, v := range t.config.Stdin {
-		filename := t.testName + "/" + v
-		f, err := os.Open(filename)
-		openFiles = append(openFiles, f)
-		if err != nil {
-			t.results.fail("Unable to open file: " + filename + ": " + err.Error())
-		}
-		if stdin != nil {
-			stdin = io.MultiReader(stdin, f)
-		} else {
-			stdin = f
+	if t.profile.Stdin == nil {
+		stdin = os.Stdin
+	} else {
+		// Set up stdin multireader
+		stdin = nil
+		for _, v := range t.profile.Stdin {
+			filename := t.testName + "/" + v
+			f, err := os.Open(filename)
+			openFiles = append(openFiles, f)
+			if err != nil {
+				t.results.fail("Unable to open file: " + filename + ": " + err.Error())
+			}
+			if stdin != nil {
+				stdin = io.MultiReader(stdin, f)
+			} else {
+				stdin = f
+			}
 		}
 	}
 
 	// Set up stdout limitwriter
-	stdout = nil
-	filename := t.testName + "/" + t.config.Stdout
-	f, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_RDWR, os.ModePerm)
-	openFiles = append(openFiles, f)
-	if err != nil {
-		t.results.info("Unable to open " + t.config.Stdout + " for use as stdout: " + err.Error())
-	}
-
-	if t.config.LimitOutput <= 0 {
-		stdout = f
+	if t.profile.Stdout == nil {
+		if t.profile.LimitOutput != nil {
+			stdout = limitWriter(os.Stdout, *t.profile.LimitOutput, t.results)
+		} else {
+			stdout = os.Stdout
+		}
 	} else {
-		stdout = limitWriter(f, t.config.LimitOutput, t.results)
+
+		stdout = nil
+		filename := t.testName + "/" + *t.profile.Stdout
+		f, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_RDWR, os.ModePerm)
+		openFiles = append(openFiles, f)
+		if err != nil {
+			t.results.info("Unable to open " + *t.profile.Stdout + " for use as stdout: " + err.Error())
+		}
+
+		if *t.profile.LimitOutput <= 0 {
+			stdout = f
+		} else {
+			stdout = limitWriter(f, *t.profile.LimitOutput, t.results)
+		}
 	}
 
 	// Set up stderr limitwriter
-	stderr = nil
-	filename = t.testName + "/" + t.config.Stderr
-	f, err = os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_RDWR, os.ModePerm)
-	openFiles = append(openFiles, f)
-	if err != nil {
-		t.results.info("Unable to open " + t.config.Stderr + " for use as stderr: " + err.Error())
-	}
-
-	if t.config.LimitOutput <= 0 {
-		stderr = f
+	if t.profile.Stderr == nil {
+		if t.profile.LimitOutput != nil {
+			stderr = limitWriter(os.Stderr, *t.profile.LimitOutput, t.results)
+		} else {
+			stderr = os.Stderr
+		}
 	} else {
-		stderr = limitWriter(f, t.config.LimitOutput, t.results)
+		stderr = nil
+		filename := t.testName + "/" + *t.profile.Stderr
+		f, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_RDWR, os.ModePerm)
+		openFiles = append(openFiles, f)
+		if err != nil {
+			t.results.info("Unable to open " + *t.profile.Stderr + " for use as stderr: " + err.Error())
+		}
+
+		if *t.profile.LimitOutput <= 0 {
+			stderr = f
+		} else {
+			stderr = limitWriter(f, *t.profile.LimitOutput, t.results)
+		}
 	}
 
 	return stdin, stdout, stderr, openFiles
@@ -345,12 +294,13 @@ func (t *test) runCommands(commands []string) {
 		if err != nil {
 			t.results.fail("Error running " + command + ": " + err.Error())
 		}
-		time.AfterFunc(time.Duration(t.config.MaxTimePerCommand)*time.Second, func() {
+		time.AfterFunc(time.Duration(*t.profile.MaxTimePerCommand)*time.Second, func() {
+			command := command
 			cmd := cmd
 			if cmd.ProcessState != nil && !cmd.ProcessState.Exited() {
 				// Process is still running
 				cmd.Process.Kill()
-				t.results.exceededTimeLimit = append(t.results.exceededTimeLimit, cmd)
+				t.results.exceededTimeLimit = append(t.results.exceededTimeLimit, command)
 			}
 		})
 		cmd.Wait()
@@ -362,7 +312,9 @@ func (t *test) runCommands(commands []string) {
 }
 
 func (t *test) runBeforeCommands() {
-	t.runCommands(t.config.Before)
+	if t.profile.Before != nil {
+		t.runCommands(t.profile.Before)
+	}
 }
 
 type limitedWriter struct {
@@ -396,7 +348,11 @@ func (l *limitedWriter) Write(p []byte) (n int, err error) {
 }
 
 func (t *test) runTestCommand() {
-	command := t.config.Command
+	if t.profile.Command == nil {
+		t.results.fail("No test command specified")
+		return
+	}
+	command := *t.profile.Command
 	// // Run sh -c command
 	cmd := exec.Command("sh", "-c", command)
 	stdin, stdout, stderr, openFiles := t.getStdio()
@@ -404,14 +360,17 @@ func (t *test) runTestCommand() {
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
 	cmd.Start()
-	time.AfterFunc(time.Duration(t.config.MaxTimePerCommand)*time.Second, func() {
-		cmd := cmd
-		if cmd.ProcessState != nil && !cmd.ProcessState.Exited() {
-			// Process is still running
-			cmd.Process.Kill()
-			t.results.exceededTimeLimit = append(t.results.exceededTimeLimit, cmd)
-		}
-	})
+	if t.profile.MaxTimePerCommand != nil {
+		time.AfterFunc(time.Duration(*t.profile.MaxTimePerCommand)*time.Second, func() {
+			command := command
+			cmd := cmd
+			if cmd.ProcessState != nil && !cmd.ProcessState.Exited() {
+				// Process is still running
+				cmd.Process.Kill()
+				t.results.exceededTimeLimit = append(t.results.exceededTimeLimit, command)
+			}
+		})
+	}
 	cmd.Wait()
 	t.results.cmd = cmd
 	for _, v := range openFiles {
@@ -420,40 +379,64 @@ func (t *test) runTestCommand() {
 }
 
 func (t *test) parseResults() {
-	match := t.config.Pass.Match
+	if t.profile.Pass == nil {
+		t.results.info("No pass conditions specified")
+		return
+	}
+
+	match := t.profile.Pass.Match
 	if match != nil {
 		for k, v := range match {
 			t.results.passed = t.results.passed && t.results.match(k, v)
 		}
 	}
 
-	rmatch := t.config.Pass.Rmatch
+	rmatch := t.profile.Pass.Rmatch
 	if rmatch != nil {
 		for k, v := range rmatch {
 			t.results.passed = t.results.passed && t.results.rmatch(k, v)
 		}
 	}
 
-	zeroExit := t.config.Pass.ZeroExit
-	if zeroExit {
-		if !t.results.cmd.ProcessState.Success() {
-			t.results.fail("Non-zero exit status (zero expected)")
-		}
-	} else {
-		if t.results.cmd.ProcessState.Success() {
-			t.results.fail("Zero exit status (non-zero expected)")
+	if t.profile.Pass.ZeroExit != nil {
+		zeroExit := *t.profile.Pass.ZeroExit
+		if zeroExit {
+			if !t.results.cmd.ProcessState.Success() {
+				t.results.fail("Non-zero exit status (zero expected)")
+			}
+		} else {
+			if t.results.cmd.ProcessState.Success() {
+				t.results.fail("Zero exit status (non-zero expected)")
+			}
 		}
 	}
 
-	limitReached := t.config.Pass.LimitReached
-	if !limitReached && t.results.limitReached {
-		t.results.fail("Output limit reached")
-	} else if limitReached && !t.results.limitReached {
-		t.results.fail("Output limit not reached")
+	if t.profile.Pass.LimitReached != nil {
+		limitReached := *t.profile.Pass.LimitReached
+		if !limitReached && t.results.limitReached {
+			t.results.fail("Output limit reached")
+		} else if limitReached && !t.results.limitReached {
+			t.results.fail("Output limit not reached")
+		}
+	}
+
+	if t.profile.Pass.MaxTimePerCommandReached != nil {
+		mtpcReached := *t.profile.Pass.MaxTimePerCommandReached
+		if mtpcReached {
+			for _, v := range t.results.exceededTimeLimit {
+				t.results.fail("Command time limit reached: " + v)
+			}
+		} else {
+			for _, v := range t.results.exceededTimeLimit {
+				t.results.fail("Command time limit not reached: " + v)
+			}
+		}
 	}
 
 }
 
 func (t *test) runAfterCommands() {
-	t.runCommands(t.config.After)
+	if t.profile.After != nil {
+		t.runCommands(t.profile.After)
+	}
 }

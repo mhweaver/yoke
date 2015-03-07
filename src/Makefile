@@ -1,5 +1,10 @@
+# GC=go build
+# GCFLAGS=-compiler gccgo
+GC=gccgo
+GCFLAGS=-g
+
 tester:	tester.go results.go profile.go
-	go build -o $@ $^
+	$(GC) $(GCFLAGS) -o $@ $^
 
 run:	tester.go
 	go run $<
