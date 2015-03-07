@@ -42,6 +42,7 @@ var options struct {
 	verbose      *bool
 	showInfo     *bool
 	showWarnings *bool
+	version      *bool
 }
 
 func main() {
@@ -100,11 +101,17 @@ func init() {
 	options.verbose = flag.Bool("verbose", false, "show all output")
 	options.showInfo = flag.Bool("info", false, "show info output")
 	options.showWarnings = flag.Bool("warnings", false, "show warnings")
+	options.version = flag.Bool("version", false, "show version and exit")
 	flag.Parse()
 
 	if *options.verbose {
 		*options.showInfo = true
 		*options.showWarnings = true
+	}
+
+	if *options.version {
+		fmt.Println("Yoke v0.9 by mhweaver")
+		os.Exit(0)
 	}
 
 	// Load/parse default config file
