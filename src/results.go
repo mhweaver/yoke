@@ -23,6 +23,10 @@ type testResults struct {
 	cmd               *exec.Cmd
 }
 
+const (
+	matchReadBufferSize = 1024 // Buffer size to use when doing a byte comparison of files
+)
+
 func newResults() (r *testResults) {
 	r = new(testResults)
 	r.passed = true
@@ -58,13 +62,13 @@ func (r *testResults) match(index int, files []string) (ret bool) {
 		if e.Next() != nil {
 			// Set up limited readers for the files, so we don't read too much
 			f1 := e.Value.(*os.File)
-			f1lr := io.LimitReader(f1, MATCH_READ_BUFFER_SIZE)
+			f1lr := io.LimitReader(f1, matchReadBufferSize)
 			f2 := e.Next().Value.(*os.File)
-			f2lr := io.LimitReader(f2, MATCH_READ_BUFFER_SIZE)
+			f2lr := io.LimitReader(f2, matchReadBufferSize)
 			// fmt.Printf("f1: %s, f2: %s\n", f1.Name(), f2.Name())
 			var f1lrBuf, f2lrBuf []byte // Buffers
-			f1lrBuf = make([]byte, MATCH_READ_BUFFER_SIZE)
-			f2lrBuf = make([]byte, MATCH_READ_BUFFER_SIZE)
+			f1lrBuf = make([]byte, matchReadBufferSize)
+			f2lrBuf = make([]byte, matchReadBufferSize)
 			for {
 				f1bytesRead, _ := f1lr.Read(f1lrBuf)
 				f2bytesRead, _ := f2lr.Read(f2lrBuf)

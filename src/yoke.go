@@ -17,9 +17,8 @@ import (
 )
 
 const (
-	DEFAULT_CONFIG_FILE    = "yoke_config.json"
-	PROFILE_FILE_NAME      = "yoke_profile.json"
-	MATCH_READ_BUFFER_SIZE = 1024
+	defaultConfigFile = "yoke_config.json"
+	profileFileName   = "yoke_profile.json"
 )
 
 type test struct {
@@ -115,7 +114,7 @@ func init() {
 	}
 
 	// Load/parse default config file
-	configFile, err := os.Stat(DEFAULT_CONFIG_FILE)
+	configFile, err := os.Stat(defaultConfigFile)
 	if err != nil || configFile.IsDir() {
 		log.Fatal("No default configuration file found: ", err)
 	}
@@ -348,7 +347,7 @@ func (l *limitedWriter) Write(p []byte) (n int, err error) {
 	if l.n <= 0 {
 		l.r.warn("Output limit reached")
 		l.r.limitReached = true
-		return 0, errors.New("Output limit reached")
+		return 0, errors.New("output limit reached")
 	}
 	if int64(len(p)) > l.n {
 		p = p[0:l.n]
