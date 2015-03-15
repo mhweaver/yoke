@@ -173,12 +173,12 @@ func (r *testResults) print() {
 	for e := r.warningList.Front(); *options.showWarnings && e != nil; e = e.Next() {
 		var result string
 		result = e.Value.(string)
-		fmt.Println(*r.testName + "(warning): " + result)
+		fmt.Fprintln(os.Stderr, *r.testName+"(warning): "+result)
 	}
 	for e := r.errorList.Front(); e != nil; e = e.Next() {
 		var result string
 		result = e.Value.(string)
-		fmt.Println(*r.testName + "(failure): " + result)
+		fmt.Fprintln(os.Stderr, *r.testName+"(failure): "+result)
 	}
 	if !r.passed {
 		fmt.Println(*r.testName + ": failed")
