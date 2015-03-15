@@ -404,14 +404,14 @@ func (t *test) parseResults() {
 	match := t.profile.Pass.Match
 	if match != nil {
 		for k, v := range match {
-			t.results.passed = t.results.passed && t.results.match(k, v)
+			t.results.match(k, v)
 		}
 	}
 
 	rmatch := t.profile.Pass.Rmatch
 	if rmatch != nil {
 		for k, v := range rmatch {
-			t.results.passed = t.results.passed && t.results.rmatch(k, v)
+			t.results.rmatch(k, v)
 		}
 	}
 
