@@ -68,12 +68,13 @@ func (r *testResults) match(index int, files []string) (ret bool) {
 				f1bytesRead, _ := f1lr.Read(f1lrBuf)
 				f2bytesRead, _ := f2lr.Read(f2lrBuf)
 				// fmt.Printf("f1buf: %s\nf2buf: %s\n", string(f1lrBuf), string(f2lrBuf))
-				if f1bytesRead != f2bytesRead || bytes.Compare(f1lrBuf, f2lrBuf) != 0 {
+				if f1bytesRead != f2bytesRead || !bytes.Equal(f1lrBuf, f2lrBuf) {
 					ret = false
 					r.fail("Files don't match: " + f1.Name() + ", " + f2.Name())
 					break
 				}
 				if f1bytesRead == 0 && f2bytesRead == 0 {
+					r.info("Files match: " + f1.Name() + ", " + f2.Name())
 					// Files match, so we can move onto the next file
 					break
 				}
