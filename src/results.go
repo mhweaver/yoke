@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"container/list"
 	"fmt"
@@ -86,12 +87,10 @@ func (r *testResults) match(index int, files []string) (ret bool) {
 }
 
 func (r *testResults) rmatch(index int, files []string) (ret bool) {
-
 	if len(files) < 2 {
 		r.info("Not enough filenames provided for match rule (" + string(index) + ")")
 		return true
 	}
-
 	ret = true
 
 	// Open the first file (regexp)
@@ -139,14 +138,7 @@ func (r *testResults) rmatch(index int, files []string) (ret bool) {
 	for e := fs.Front(); e != nil; e = e.Next() {
 		// Set up limited readers for the files, so we don't read too much
 		f := e.Value.(*os.File)
-		fBytes := make([]byte, 0)
-		_, err := f.Read(fBytes)
-		if err != nil {
-			r.fail("Unable to read file for regexp match: " + f.Name())
-			ret = false
-			continue
-		}
-		if !re.Match(fBytes) {
+		if !re.MatchReader(bufio.NewReader(f)) {
 			r.fail("Files don't match (using regular expression): " + reFile.Name() + ", " + f.Name())
 			ret = false
 		}
