@@ -213,8 +213,12 @@ func (t *test) truncateOutputFiles() {
 	}
 }
 
-func (t *test) getStdio() (stdin io.Reader, stdout io.Writer, stderr io.Writer, openFiles []*os.File) {
-	openFiles = make([]*os.File, 3)
+func (t *test) getStdio() (stdin io.Reader,
+	stdinFiles []*os.File,
+	stdout io.Writer,
+	stdoutFile *os.File,
+	stderr io.Writer,
+	stderrFile *os.File) {
 
 	if t.profile.Stdin == nil {
 		stdin = os.Stdin
@@ -224,13 +228,14 @@ func (t *test) getStdio() (stdin io.Reader, stdout io.Writer, stderr io.Writer, 
 		for _, v := range t.profile.Stdin {
 			filename := t.testName + "/" + v
 			f, err := os.Open(filename)
-			openFiles = append(openFiles, f)
+			stdinFiles = append(stdinFiles, f)
 			if err != nil {
 				t.results.fail("Unable to open file: " + filename + ": " + err.Error())
 			}
 			if stdin != nil {
 				stdin = io.MultiReader(stdin, f)
 			} else {
+
 				stdin = f
 			}
 		}
@@ -247,16 +252,15 @@ func (t *test) getStdio() (stdin io.Reader, stdout io.Writer, stderr io.Writer, 
 
 		stdout = nil
 		filename := t.testName + "/" + *t.profile.Stdout
-		f, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_RDWR, os.ModePerm)
-		openFiles = append(openFiles, f)
+		stdoutFile, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_RDWR, os.ModePerm)
 		if err != nil {
 			t.results.info("Unable to open " + *t.profile.Stdout + " for use as stdout: " + err.Error())
 		}
 
 		if *t.profile.LimitOutput <= 0 {
-			stdout = f
+			stdout = stdoutFile
 		} else {
-			stdout = limitWriter(f, *t.profile.LimitOutput, t.results)
+			stdout = limitWriter(stdoutFile, *t.profile.LimitOutput, t.results)
 		}
 	}
 
@@ -270,20 +274,19 @@ func (t *test) getStdio() (stdin io.Reader, stdout io.Writer, stderr io.Writer, 
 	} else {
 		stderr = nil
 		filename := t.testName + "/" + *t.profile.Stderr
-		f, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_RDWR, os.ModePerm)
-		openFiles = append(openFiles, f)
+		stderrFile, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_RDWR, os.ModePerm)
 		if err != nil {
 			t.results.info("Unable to open " + *t.profile.Stderr + " for use as stderr: " + err.Error())
 		}
 
 		if *t.profile.LimitOutput <= 0 {
-			stderr = f
+			stderr = stderrFile
 		} else {
-			stderr = limitWriter(f, *t.profile.LimitOutput, t.results)
+			stderr = limitWriter(stderrFile, *t.profile.LimitOutput, t.results)
 		}
 	}
 
-	return stdin, stdout, stderr, openFiles
+	return
 }
 
 func (t *test) runCommands(commands []string) {
@@ -293,7 +296,7 @@ func (t *test) runCommands(commands []string) {
 		// // Run sh -c command
 		cmd := exec.Command("sh", "-c", command)
 
-		stdin, stdout, stderr, openFiles := t.getStdio()
+		stdin, stdinFiles, stdout, stdoutFile, stderr, stderrFile := t.getStdio()
 		cmd.Stdin = stdin
 		cmd.Stdout = stdout
 		cmd.Stderr = stderr
@@ -312,9 +315,12 @@ func (t *test) runCommands(commands []string) {
 		})
 		cmd.Wait()
 
-		for _, v := range openFiles {
+		// Close files
+		for _, v := range stdinFiles {
 			v.Close()
 		}
+		stdoutFile.Close()
+		stderrFile.Close()
 	}
 }
 
@@ -362,7 +368,7 @@ func (t *test) runTestCommand() {
 	command := *t.profile.Command
 	// // Run sh -c command
 	cmd := exec.Command("sh", "-c", command)
-	stdin, stdout, stderr, openFiles := t.getStdio()
+	stdin, stdinFiles, stdout, stdoutFile, stderr, stderrFile := t.getStdio()
 	cmd.Stdin = stdin
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
@@ -380,9 +386,13 @@ func (t *test) runTestCommand() {
 	}
 	cmd.Wait()
 	t.results.cmd = cmd
-	for _, v := range openFiles {
+
+	// Close files
+	for _, v := range stdinFiles {
 		v.Close()
 	}
+	stdoutFile.Close()
+	stderrFile.Close()
 }
 
 func (t *test) parseResults() {
