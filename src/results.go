@@ -86,19 +86,17 @@ func (r *testResults) match(index int, files []string) (ret bool) {
 	return
 }
 
-func (r *testResults) rmatch(index int, files []string) (ret bool) {
+func (r *testResults) rmatch(index int, files []string) {
 	if len(files) < 2 {
-		r.info("Not enough filenames provided for match rule (" + string(index) + ")")
-		return true
+		r.warn("Not enough filenames provided for match rule (" + string(index) + ")")
+		return
 	}
-	ret = true
 
 	// Open the first file (regexp)
 	reFile, err := os.Open(*r.testName + "/" + files[0])
 	defer reFile.Close()
 	if err != nil {
 		r.fail("Unable to open regular expression file: " + files[0])
-		ret = false
 		return
 	}
 
@@ -106,7 +104,6 @@ func (r *testResults) rmatch(index int, files []string) (ret bool) {
 	reBytes, err := ioutil.ReadAll(reFile)
 	if err != nil {
 		r.fail("Unable to read regular expression file: " + files[0])
-		ret = false
 		return
 	}
 	if len(reBytes) == 0 {
@@ -117,7 +114,6 @@ func (r *testResults) rmatch(index int, files []string) (ret bool) {
 	re, err := regexp.Compile(string(reBytes))
 	if err != nil {
 		r.fail("Unable to compile regular expression file: " + files[0])
-		ret = false
 		return
 	}
 
@@ -128,7 +124,6 @@ func (r *testResults) rmatch(index int, files []string) (ret bool) {
 		defer f.Close()
 		if err != nil {
 			r.fail("Unable to open file for comparison: " + v)
-			ret = false
 			continue
 		}
 		fs.PushBack(f)
@@ -140,7 +135,6 @@ func (r *testResults) rmatch(index int, files []string) (ret bool) {
 		f := e.Value.(*os.File)
 		if !re.MatchReader(bufio.NewReader(f)) {
 			r.fail("Files don't match (using regular expression): " + reFile.Name() + ", " + f.Name())
-			ret = false
 		}
 	}
 	// If we made it down to here, all the files matched (or weren't accessible)
