@@ -1,0 +1,28 @@
+{
+	"name": "regex",
+	"command":"cat test-regex/input",
+	"requiredFiles": [
+		"input",
+		"input.expected",
+		"output.expected",
+		"output.regex",
+		"error.expected"
+	],
+	"createRequired": true,
+	"stdout":"output",
+	"stderr":"error",
+	"limitOutput": 1000,
+	"maxTimePerCommand": 2,
+	"pass" : {
+		"zeroExit": true,
+		"match": [
+			["input.expected", "input.expected"],
+			["output.expected", "output"]
+		],
+		"rmatch": [
+			["output.regex", "output"]
+		],
+		"limitReached": false,
+		"maxTimePerCommandReached": false
+	}
+}

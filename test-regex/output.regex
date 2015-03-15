@@ -1,0 +1,5 @@
+^this is a test.*
+second line.?
+th(is|at) is a number: \d{2};
+
+(1st|2nd|3rd|[4-9]th) l((?i)i)ne.$
