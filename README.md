@@ -16,8 +16,8 @@ Features - Most of the features in Yoke are things I've wanted in a test engine,
 * Pass conditions: Doesn't matter if 2 files match? Then don't fail the test if they don't; just leave the "match" rule out of the pass conditions and it won't even bother comparing the files. Do you want a test to pass when a program doesn't exit cleanly? Add that to the pass conditions.
 * Muliple input: Input for the program being tested normally comes from a single file. Yoke allows you to use several files. It feeds them, in order, into the program as a single input stream. In some situations, this can make tests easier to create and keep organized.
 * Test chaining: Multiple tests can be chained together in a single test. This is useful for things like compilers, where you might want to execute the output of another test. For example: test1 generates (and verifies) hello.o; test1-1 then somehow executes hello.o, to verify its output is also correct
+* Regular expression file matching: Sometimes the output from a test changes every time the test runs (maybe the output has the current time or something). Regex matching allows you to specify the expected output with a little more freedom. To see an example of this, check out test-regex/
 
 Works in progress:
-* Regular expression file matching: Sometimes the output from a test changes every time the test runs. Regex matching will allow you to specify the expected output with a little more freedom. This is pretty much the next thing in the pipeline (and actually works already, in some cases)
 * Configuration/profile generation: JSON is nice, but do you know what's even better? Not having to write JSON files by hand. Some day.
 * Proper documentation: I tried to make the JSON files easy to understand, but good documentation is always nice.
