@@ -3,7 +3,9 @@
 GC=gccgo
 GCFLAGS=-g
 
-yoke:	yoke.go results.go profile.go
+GOFILES=$(wildcard *.go)
+
+yoke:	$(GOFILES)
 	$(GC) $(GCFLAGS) -o $@ $^
 
 run:	yoke.go
