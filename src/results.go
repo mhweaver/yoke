@@ -162,13 +162,13 @@ func (r *testResults) warn(msg string) {
 	r.warningList.PushBack(msg)
 }
 
-func (r *testResults) print() {
-	for e := r.infoList.Front(); *options.showInfo && e != nil; e = e.Next() {
+func (r *testResults) print(showWarnings, showInfo bool) {
+	for e := r.infoList.Front(); showInfo && e != nil; e = e.Next() {
 		var result string
 		result = e.Value.(string)
 		fmt.Println(*r.testName + "(info): " + result)
 	}
-	for e := r.warningList.Front(); *options.showWarnings && e != nil; e = e.Next() {
+	for e := r.warningList.Front(); showWarnings && e != nil; e = e.Next() {
 		var result string
 		result = e.Value.(string)
 		fmt.Fprintln(os.Stderr, *r.testName+"(warning): "+result)

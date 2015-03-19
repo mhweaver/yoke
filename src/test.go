@@ -25,7 +25,8 @@ func newTest(name string) (t *test) {
 	t.results = newResults()
 	t.results.testName = &t.testName
 
-	t.profile = newProfile(name, t.results, &config.DefaultProfile)
+	t.profile = newProfile(name, t.results)
+	t.profile.copyUnsetFrom(&config.DefaultProfile)
 
 	t.results.info("Test loaded: " + name + " (config: " + *t.profile.Name + ")")
 

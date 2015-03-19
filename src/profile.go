@@ -9,6 +9,10 @@ import (
 	"strings"
 )
 
+const (
+	profileFileName = "yoke_profile.json"
+)
+
 // Generated with http://mervine.net/json2struct because I'm lazy
 type testProfile struct {
 	After             []string        `json:"after"`
@@ -35,7 +39,7 @@ type passConditions struct {
 	MaxTimePerCommandReached *bool      `json:maxTimePerCommandReached`
 }
 
-func newProfile(testdir string, r *testResults, defaultProfile *testProfile) (p *testProfile) {
+func newProfile(testdir string, r *testResults) (p *testProfile) {
 	p = new(testProfile)
 
 	profileBytes, err := ioutil.ReadFile(testdir + "/" + profileFileName)
@@ -52,7 +56,7 @@ func newProfile(testdir string, r *testResults, defaultProfile *testProfile) (p 
 		fmt.Println(p.String())
 	}
 
-	p.copyUnsetFrom(defaultProfile)
+	// p.copyUnsetFrom(defaultProfile)
 	// fmt.Println(p.String())
 	return
 }
@@ -71,13 +75,16 @@ func (p *testProfile) fixNullReferences() {
 	// MaxTimePerCommand *int64
 	// Pass *passConditions
 	if p.Noconcurrent == nil { //  *bool
-		*p.Noconcurrent = false
+		newBools := false
+		p.Noconcurrent = &newBools
 	}
 	if p.Name == nil { //    *string
-		*p.Name = "name not set"
+		newName := "name not set"
+		p.Name = &newName
 	}
 	if p.CreateRequired == nil { //     *bool
-		*p.CreateRequired = false
+		newBool := false
+		p.CreateRequired = &newBool
 	}
 
 }
@@ -235,5 +242,8 @@ func (p *testProfile) String() (s string) {
 		s += "\nMaxTimePerCommand: " + strconv.FormatInt(*p.MaxTimePerCommand, 10)
 	}
 
+	if p.Next != nil { // *testProfile
+		s += "\n\nNext: " + p.Next.String()
+	}
 	return
 }
