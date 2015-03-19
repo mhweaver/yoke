@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"sync"
 	"time"
 )
 
@@ -47,10 +48,10 @@ func (t *test) run() {
 	}
 }
 
-func (t *test) runInThread(c chan bool, done chan bool) {
+func (t *test) runInThread(c chan bool, wg *sync.WaitGroup) {
+	defer wg.Done()
 	t.run()
 	<-c // Done
-	done <- true
 }
 
 func (t *test) checkRequiredFiles() {

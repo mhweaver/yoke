@@ -10,6 +10,7 @@ import (
 	"os"
 	"runtime"
 	"strings"
+	"sync"
 )
 
 const (
@@ -33,16 +34,13 @@ func main() {
 	case "run":
 		runTests(args)
 		os.Exit(0)
-		break
-	case "create":
+	case "create": // TODO
 	case "list":
 		listTests(args)
 		os.Exit(0)
-		break
 	case "version":
 		fmt.Println("Yoke v0.9 by mhweaver")
 		os.Exit(0)
-		break
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command: %s\n", command)
 		// TODO: printUsage()
@@ -150,21 +148,21 @@ func runTests(args []string) {
 	// Handle tests
 	// Run concurrent tests
 	c := make(chan bool, config.Maxthreads)
-	done := make(chan bool)
+	var wg sync.WaitGroup
 	for e := tests.Front(); e != nil; e = e.Next() {
 		var currTest *test
 		currTest = e.Value.(*test)
 		if currTest.profile.Noconcurrent != nil && !*currTest.profile.Noconcurrent {
 			c <- true // If there are > maxthreads running, wait for one to finish
-			go currTest.runInThread(c, done)
+			wg.Add(1)
+			go currTest.runInThread(c, &wg)
+
 			numConcurrent++
 		}
 	}
 	// Wait until all concurrent tests are done
-	for i := 0; i < numConcurrent; i++ {
-		<-done
-	}
-	// Run non-concurrent tests
+	wg.Wait()
+
 	for e := tests.Front(); e != nil; e = e.Next() {
 		var currTest *test
 		currTest = e.Value.(*test)
