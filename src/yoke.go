@@ -55,6 +55,7 @@ func main() {
 
 }
 
+// Print usage information for subcommands
 func printUsage(args []string) {
 	if len(args) < 1 {
 		fmt.Println("yoke usage: yoke [command [...]]")
@@ -70,7 +71,10 @@ func printUsage(args []string) {
 	}
 	switch args[0] {
 	case "help":
-		printUsage(nil)
+		fmt.Println("Usage:")
+		fmt.Println("\tyoke help [command]")
+		fmt.Println()
+		fmt.Println("Prints usage information for the specified command")
 	case "run":
 		fmt.Println("Usage:")
 		fmt.Println("\tyoke run [flags] [test1 [test2 [...]]]")
