@@ -31,22 +31,76 @@ func main() {
 	// fmt.Printf("command: %s\nargs: %v\n", command, args)
 
 	switch command {
+	case "help":
+		printUsage(args)
+		os.Exit(0)
 	case "run":
 		runTests(args)
 		os.Exit(0)
 	case "create": // TODO
+		fmt.Println("Create is not yet implemented. Sorry.")
+		os.Exit(1)
 	case "list":
 		listTests(args)
 		os.Exit(0)
 	case "version":
+		// TODO: Do this dynamically, rather than hard-coding the version number
 		fmt.Println("Yoke v0.9 by mhweaver")
 		os.Exit(0)
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command: %s\n", command)
-		// TODO: printUsage()
+		printUsage(nil)
 		os.Exit(1)
 	}
 
+}
+
+func printUsage(args []string) {
+	if len(args) < 1 {
+		fmt.Println("yoke usage: yoke [command [...]]")
+		fmt.Println()
+		fmt.Println("If a command is not specified, all tests are run (this is the same is running 'yoke run')")
+		fmt.Println("Commands (for more information, 'yoke help [command]' is your friend):")
+		fmt.Println("\tyoke create\tNot yet implemented. Create a new test")
+		fmt.Println("\tyoke help\tView usage information for a command")
+		fmt.Println("\tyoke list\tList recognized tests. Does not run tests")
+		fmt.Println("\tyoke run\tRun tests")
+		fmt.Println("\tyoke version\tShow version information")
+		return
+	}
+	switch args[0] {
+	case "help":
+		printUsage(nil)
+	case "run":
+		fmt.Println("Usage:")
+		fmt.Println("\tyoke run [test1 [test2 [...]]]")
+		fmt.Println()
+		fmt.Println("Runs the specified tests.")
+		fmt.Println("If no tests are all given, all tests will be run.")
+		fmt.Println("To see a list of all tests, use 'yoke list'")
+	case "create":
+		fmt.Println("Usage:")
+		fmt.Println("\tyoke create name")
+		fmt.Println()
+		fmt.Println("***NOT YET IMPLEMENTED!***")
+		fmt.Println("Creates a new test.")
+		fmt.Println("The test will be placed in the directory [prefix]name, where [prefix] is the test name prefix specified in the yoke configuration file.")
+	case "list":
+		fmt.Println("Usage:")
+		fmt.Println("\tyoke list [-profiles]")
+		fmt.Println()
+		fmt.Println("Lists tests.")
+		fmt.Println("-profiles\t- Show test profiles")
+	case "version":
+		fmt.Println("Usage:")
+		fmt.Println("\tyoke version")
+		fmt.Println()
+		fmt.Println("Show version information.")
+		fmt.Println("Why are you even looking at the help for this command?!")
+	default:
+		fmt.Println("Unknown command: ", args[0])
+
+	}
 }
 
 func loadConfig() {
@@ -78,10 +132,15 @@ func loadConfig() {
 
 func parseArgs(args []string) (command string, parsedArgs []string) {
 	parsedArgs = args[1:] // strip off the "yoke"
+	// fmt.Println("parsed args:", parsedArgs)
+
+	// If the arg[0] isn't a command or doesn't exist, command = run
 	if len(parsedArgs) < 1 {
 		command = "run"
 	} else {
 		switch parsedArgs[0] {
+		case "help":
+			fallthrough
 		case "run":
 			fallthrough
 		case "create":
