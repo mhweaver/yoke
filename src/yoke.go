@@ -73,11 +73,13 @@ func printUsage(args []string) {
 		printUsage(nil)
 	case "run":
 		fmt.Println("Usage:")
-		fmt.Println("\tyoke run [test1 [test2 [...]]]")
+		fmt.Println("\tyoke run [flags] [test1 [test2 [...]]]")
 		fmt.Println()
 		fmt.Println("Runs the specified tests.")
 		fmt.Println("If no tests are all given, all tests will be run.")
 		fmt.Println("To see a list of all tests, use 'yoke list'")
+		fmt.Println()
+		fmt.Println("For flags, see 'yoke", args[0], "-h'")
 	case "create":
 		fmt.Println("Usage:")
 		fmt.Println("\tyoke create name")
@@ -85,18 +87,20 @@ func printUsage(args []string) {
 		fmt.Println("***NOT YET IMPLEMENTED!***")
 		fmt.Println("Creates a new test.")
 		fmt.Println("The test will be placed in the directory [prefix]name, where [prefix] is the test name prefix specified in the yoke configuration file.")
+		fmt.Println("For flags, see 'yoke", args[0], "-h'")
 	case "list":
 		fmt.Println("Usage:")
-		fmt.Println("\tyoke list [-profiles]")
+		fmt.Println("\tyoke list [flags]")
 		fmt.Println()
 		fmt.Println("Lists tests.")
-		fmt.Println("-profiles\t- Show test profiles")
+		fmt.Println()
+		fmt.Println("For flags, see 'yoke", args[0], "-h'")
 	case "version":
 		fmt.Println("Usage:")
 		fmt.Println("\tyoke version")
 		fmt.Println()
 		fmt.Println("Show version information.")
-		fmt.Println("Why are you even looking at the help for this command?!")
+		fmt.Println("Why are you even looking at the help for this command, anyway?")
 	default:
 		fmt.Println("Unknown command: ", args[0])
 
